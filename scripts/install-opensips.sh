@@ -66,7 +66,7 @@ detect_opensips_os() {
   exit 2
 }
 
-generate_uuid() { [[ -r /proc/sys/kernel/random/uuid ]] && tr '[:lower:]' '[:upper:]' < /proc/sys/kernel/random/uuid && return 0; command -v uuidgen >/dev/null 2>&1 && uuidgen | tr '[:lower:]' '[:upper:]'; }
+generate_uuid() { [[ -r /proc/sys/kernel/random/uuid ]] && tr '[:upper:]' '[:lower:]' < /proc/sys/kernel/random/uuid && return 0; command -v uuidgen >/dev/null 2>&1 && uuidgen | tr '[:upper:]' '[:lower:]'; }
 
 generate_secret_32() {
   if command -v openssl >/dev/null 2>&1; then
@@ -101,7 +101,7 @@ ensure_node_uuid_file() {
   if [[ -f "${NODE_UUID_FILE}" ]]; then NODE_UUID="$(tr -d '[:space:]' < "${NODE_UUID_FILE}")"; else NODE_UUID="$(generate_uuid)"; write_file "${NODE_UUID_FILE}" "${NODE_UUID}"; fi
   compact="${NODE_UUID//-/}"
   [[ "${compact}" =~ ^[0-9A-Fa-f]{32}$ ]] || { err "Node UUID invalido em ${NODE_UUID_FILE}: ${NODE_UUID}"; return 1; }
-  compact="$(echo "${compact}" | tr '[:lower:]' '[:upper:]')"
+  compact="$(echo "${compact}" | tr '[:upper:]' '[:lower:]')"
   NODE_UUID="${compact:0:8}-${compact:8:4}-${compact:12:4}-${compact:16:4}-${compact:20:12}"
   write_file "${NODE_UUID_FILE}" "${NODE_UUID}"
   run "chown root:root '${NODE_UUID_FILE}'"
