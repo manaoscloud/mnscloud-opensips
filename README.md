@@ -14,6 +14,19 @@ contract. It can run on MNSCloud, customer, or partner infrastructure.
 - Do not commit secrets, customer data, production infrastructure values, provider credentials, or
   private business rules.
 
+## Contract
+
+- Product/runtime: `mnscloud-opensips`
+- Project directory: `/opt/mnscloud/mnscloud-opensips`
+- Installer: `scripts/install-opensips.sh`
+- Service: `opensips.service`
+- Local state prefix: `/etc/mnscloud/sbc`
+- Node UUID: `/etc/mnscloud/sbc/node.uuid`
+- API token: `/etc/mnscloud/sbc/api.token`
+- API base URL: `/etc/mnscloud/sbc/api.base`
+- OpenSIPS config: `/etc/opensips/opensips.cfg`
+- Config validation: `opensips -C -f /etc/opensips/opensips.cfg`
+
 ## Install
 
 Install GitHub CLI if needed:
