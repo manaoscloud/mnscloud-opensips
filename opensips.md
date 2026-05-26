@@ -45,7 +45,7 @@ O instalador:
   - Debian 12 Bookworm: `https://apt.opensips.org` com componente `3.6-releases` e keyring `/usr/share/keyrings/opensips.gpg`;
   - Rocky 8/9: `https://yum.opensips.org/3.6/releases/st/<major>/<arch>/`;
 - instala OpenSIPS e módulos HTTP/REST/JSON;
-- instala ferramentas de troubleshooting como `sngrep`, `tcpdump`, `ngrep`, `mtr`, `jq` e `curl`;
+- instala ferramentas de troubleshooting como `sngrep`, `tcpdump`, `ngrep`, `ping`, `mtr`, `jq` e `curl`;
 - cria ou reaproveita `/etc/mnscloud/sbc/node.uuid`;
 - cria ou reaproveita `/etc/mnscloud/sbc/api.token`;
 - tenta vincular o node UUID via API bootstrap usando hostname, IPv4 privado e IPv4 público descoberto;

@@ -182,7 +182,7 @@ install_packages_debian() {
   run "chmod 0644 /usr/share/keyrings/opensips.gpg"
   write_file "/etc/apt/sources.list.d/opensips.list" "deb [signed-by=/usr/share/keyrings/opensips.gpg] https://apt.opensips.org ${codename} 3.6-releases"
   run "apt-get update -y"
-  run "apt-get install -y --no-install-recommends opensips opensips-http-modules opensips-json-module opensips-restclient-module opensips-tls-module sngrep tcpdump ngrep dnsutils traceroute mtr-tiny netcat-openbsd jq ca-certificates curl"
+  run "apt-get install -y --no-install-recommends opensips opensips-http-modules opensips-json-module opensips-restclient-module opensips-tls-module sngrep tcpdump ngrep dnsutils iputils-ping traceroute mtr-tiny netcat-openbsd jq ca-certificates curl"
   run "opensips -V | head -n 1"
 }
 
@@ -209,7 +209,7 @@ gpgcheck=1
 gpgkey=https://yum.opensips.org/opensips-org.gpg"
   run "dnf clean all"
   run "dnf makecache --repo opensips-3.6"
-  run "dnf install -y opensips opensips-http-modules opensips-json-module opensips-restclient-module sngrep tcpdump ngrep bind-utils traceroute mtr nc jq curl ca-certificates"
+  run "dnf install -y opensips opensips-http-modules opensips-json-module opensips-restclient-module sngrep tcpdump ngrep bind-utils iputils traceroute mtr nc jq curl ca-certificates"
   run "opensips -V | head -n 1"
 }
 backup_once() { local file="$1"; [[ -f "$file" && ! -f "${file}.bkp" ]] && run "cp -a '${file}' '${file}.bkp'" || true; }
