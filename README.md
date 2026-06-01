@@ -19,6 +19,7 @@ contract. It can run on MNSCloud, customer, or partner infrastructure.
 - Product/runtime: `mnscloud-opensips`
 - Project directory: `/opt/mnscloud/mnscloud-opensips`
 - Installer: `scripts/install-opensips.sh`
+- Shared package installer: `mnscloud-runtime-kit`
 - Service: `opensips.service`
 - Local state prefix: `/etc/mnscloud/sbc`
 - Node UUID: `/etc/mnscloud/sbc/node.uuid`

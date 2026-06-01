@@ -13,6 +13,10 @@ DEFAULT_API_BASE="https://api.publichost.cloud"
 NODE_UUID=""
 API_BASE=""
 API_TOKEN=""
+OPENSIPS_RUNTIME_KIT_DIR="${OPENSIPS_RUNTIME_KIT_DIR:-/opt/mnscloud/runtime-kit}"
+OPENSIPS_RUNTIME_KIT_REPO_URL="${OPENSIPS_RUNTIME_KIT_REPO_URL:-https://github.com/manaoscloud/mnscloud-runtime-kit.git}"
+OPENSIPS_RUNTIME_KIT_CHANNEL="${OPENSIPS_RUNTIME_KIT_CHANNEL:-stable}"
+OPENSIPS_RUNTIME_KIT_REF="${OPENSIPS_RUNTIME_KIT_REF:-}"
 
 normalize_url() {
   local value="$1"
@@ -64,6 +68,47 @@ detect_opensips_os() {
   esac
   err "Unsupported operating system for OpenSIPS. Supported: Debian 12/13 and Rocky 8/9."
   exit 2
+}
+
+resolve_runtime_kit_ref() {
+  local kit_dir="$1" channel="$2" manifest ref
+  manifest="$(git -C "$kit_dir" show "origin/main:releases/manifest.json" 2>/dev/null)" ||
+    { err "cannot read runtime kit release manifest from origin/main"; return 1; }
+  ref="$(printf '%s\n' "$manifest" | awk -v channel="$channel" '
+    $0 ~ "\"" channel "\"" { in_channel = 1; next }
+    in_channel && /"ref"[[:space:]]*:/ {
+      gsub(/.*"ref"[[:space:]]*:[[:space:]]*"/, "")
+      gsub(/".*/, "")
+      print
+      exit
+    }
+    in_channel && /^[[:space:]]*}/ { in_channel = 0 }
+  ')"
+  [[ "$ref" =~ ^v[0-9]+[.][0-9]+[.][0-9]+([-+][0-9A-Za-z.-]+)?$ ]] ||
+    { err "invalid runtime kit ref for channel ${channel}: ${ref:-empty}"; return 1; }
+  printf '%s\n' "$ref"
+}
+
+load_runtime_kit() {
+  [[ "${OPENSIPS_RUNTIME_KIT_LOADED:-0}" == "1" ]] && return 0
+  command -v git >/dev/null 2>&1 || run "if command -v apt-get >/dev/null 2>&1; then apt-get update -y && apt-get install -y --no-install-recommends ca-certificates git; else dnf install -y ca-certificates git; fi"
+  if [[ -d "${OPENSIPS_RUNTIME_KIT_DIR}/.git" ]]; then
+    run "git -C '${OPENSIPS_RUNTIME_KIT_DIR}' fetch --all --tags --prune"
+  else
+    run "install -d -m 0755 '$(dirname "$OPENSIPS_RUNTIME_KIT_DIR")'"
+    run "git clone '${OPENSIPS_RUNTIME_KIT_REPO_URL}' '${OPENSIPS_RUNTIME_KIT_DIR}'"
+  fi
+  if [[ -z "$OPENSIPS_RUNTIME_KIT_REF" ]]; then
+    OPENSIPS_RUNTIME_KIT_REF="$(resolve_runtime_kit_ref "$OPENSIPS_RUNTIME_KIT_DIR" "$OPENSIPS_RUNTIME_KIT_CHANNEL")"
+    info "Resolved runtime kit ${OPENSIPS_RUNTIME_KIT_CHANNEL} channel to ${OPENSIPS_RUNTIME_KIT_REF}"
+  fi
+  run "git -C '${OPENSIPS_RUNTIME_KIT_DIR}' -c advice.detachedHead=false checkout '${OPENSIPS_RUNTIME_KIT_REF}'"
+  git -C "$OPENSIPS_RUNTIME_KIT_DIR" pull --ff-only origin "$OPENSIPS_RUNTIME_KIT_REF" 2>/dev/null || true
+  [[ -r "${OPENSIPS_RUNTIME_KIT_DIR}/lib/packages.sh" ]] || { err "runtime kit packages library not found"; return 1; }
+  export MNSCLOUD_RUNTIME_KIT_LOG_PREFIX="mnscloud-opensips/runtime-kit"
+  # shellcheck disable=SC1091
+  source "${OPENSIPS_RUNTIME_KIT_DIR}/lib/packages.sh"
+  OPENSIPS_RUNTIME_KIT_LOADED=1
 }
 
 generate_uuid() { [[ -r /proc/sys/kernel/random/uuid ]] && tr '[:upper:]' '[:lower:]' < /proc/sys/kernel/random/uuid && return 0; command -v uuidgen >/dev/null 2>&1 && uuidgen | tr '[:upper:]' '[:lower:]'; }
@@ -158,59 +203,21 @@ bootstrap_node_via_api() {
 }
 
 install_packages_debian() {
-  local codename
-  # shellcheck disable=SC1091
-  . /etc/os-release
-  codename="${VERSION_CODENAME:-}"
-  if [[ -z "${codename}" ]]; then
-    codename="$(. /etc/os-release && echo "${VERSION:-}" | sed -n 's/.*(\([^)]*\)).*/\1/p' | head -n1)"
+  if [[ "$DRY_RUN" == true ]]; then
+    log DRY "load mnscloud-runtime-kit and run mrtk_ensure_opensips"
+    return 0
   fi
-  case "${codename}" in
-    bookworm) ;;
-    *)
-      err "Unsupported Debian codename for the official OpenSIPS 3.6.x repository: ${codename:-unknown}. Supported: bookworm."
-      exit 2
-      ;;
-  esac
-  info "Configuring official OpenSIPS 3.6.x repository for Debian ${codename}..."
-  run "apt-get update -y"
-  run "apt-get install -y --no-install-recommends ca-certificates curl gnupg"
-  run "install -m 0755 -d /usr/share/keyrings"
-  run "rm -f /usr/share/keyrings/opensips.gpg.tmp"
-  run "curl -fsSL https://apt.opensips.org/opensips-org.gpg | gpg --dearmor -o /usr/share/keyrings/opensips.gpg.tmp"
-  run "mv /usr/share/keyrings/opensips.gpg.tmp /usr/share/keyrings/opensips.gpg"
-  run "chmod 0644 /usr/share/keyrings/opensips.gpg"
-  write_file "/etc/apt/sources.list.d/opensips.list" "deb [signed-by=/usr/share/keyrings/opensips.gpg] https://apt.opensips.org ${codename} 3.6-releases"
-  run "apt-get update -y"
-  run "apt-get install -y --no-install-recommends opensips opensips-http-modules opensips-json-module opensips-restclient-module opensips-tls-module sngrep tcpdump ngrep dnsutils iputils-ping traceroute mtr-tiny netcat-openbsd jq ca-certificates curl"
-  run "opensips -V | head -n 1"
+  load_runtime_kit
+  mrtk_ensure_opensips
 }
 
 install_packages_rocky() {
-  local major
-  # shellcheck disable=SC1091
-  . /etc/os-release
-  major="${VERSION_ID%%.*}"
-  case "${major}" in
-    8|9) ;;
-    *)
-      err "Unsupported Rocky Linux version for the official OpenSIPS 3.6.x repository: ${VERSION_ID:-unknown}. Supported: Rocky 8/9."
-      exit 2
-      ;;
-  esac
-  info "Configuring official OpenSIPS 3.6.x repository for Rocky ${major}..."
-  run "dnf install -y epel-release dnf-plugins-core ca-certificates curl"
-  run "rpm --import https://yum.opensips.org/opensips-org.gpg"
-  write_file "/etc/yum.repos.d/opensips.repo" "[opensips-3.6]
-name=OpenSIPS 3.6.x official repository
-baseurl=https://yum.opensips.org/3.6/releases/st/${major}/\$basearch/
-enabled=1
-gpgcheck=1
-gpgkey=https://yum.opensips.org/opensips-org.gpg"
-  run "dnf clean all"
-  run "dnf makecache --repo opensips-3.6"
-  run "dnf install -y opensips opensips-http-modules opensips-json-module opensips-restclient-module sngrep tcpdump ngrep bind-utils iputils traceroute mtr nc jq curl ca-certificates"
-  run "opensips -V | head -n 1"
+  if [[ "$DRY_RUN" == true ]]; then
+    log DRY "load mnscloud-runtime-kit and run mrtk_ensure_opensips"
+    return 0
+  fi
+  load_runtime_kit
+  mrtk_ensure_opensips
 }
 backup_once() { local file="$1"; [[ -f "$file" && ! -f "${file}.bkp" ]] && run "cp -a '${file}' '${file}.bkp'" || true; }
 
