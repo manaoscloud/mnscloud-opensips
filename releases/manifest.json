@@ -1,0 +1,12 @@
+{
+  "product": "mnscloud-opensips",
+  "repository": "manaoscloud/mnscloud-opensips",
+  "channels": {
+    "stable": {
+      "version": "0.1.1",
+      "ref": "v0.1.1",
+      "releasedAt": "2026-06-16T20:20:49Z",
+      "minimumVersion": "0.1.0"
+    }
+  }
+}
