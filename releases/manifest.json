@@ -1,6 +1,6 @@
 {
-  "product": "mnscloud-opensips",
-  "repository": "manaoscloud/mnscloud-opensips",
+  "product": "mnscloud-opensips-sbc",
+  "repository": "manaoscloud/mnscloud-opensips-sbc",
   "channels": {
     "stable": {
       "version": "0.1.1",

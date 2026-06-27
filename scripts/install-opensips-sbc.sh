@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-LOG_PREFIX="[install-opensips]"
+LOG_PREFIX="[install-opensips-sbc]"
 # shellcheck disable=SC1091
 source "$(dirname "$0")/lib/install-base.sh" "$@"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -105,7 +105,7 @@ load_runtime_kit() {
   run "git -C '${OPENSIPS_RUNTIME_KIT_DIR}' -c advice.detachedHead=false checkout '${OPENSIPS_RUNTIME_KIT_REF}'"
   git -C "$OPENSIPS_RUNTIME_KIT_DIR" pull --ff-only origin "$OPENSIPS_RUNTIME_KIT_REF" 2>/dev/null || true
   [[ -r "${OPENSIPS_RUNTIME_KIT_DIR}/lib/packages.sh" ]] || { err "runtime kit packages library not found"; return 1; }
-  export MNSCLOUD_RUNTIME_KIT_LOG_PREFIX="mnscloud-opensips/runtime-kit"
+  export MNSCLOUD_RUNTIME_KIT_LOG_PREFIX="mnscloud-opensips-sbc/runtime-kit"
   # shellcheck disable=SC1091
   source "${OPENSIPS_RUNTIME_KIT_DIR}/lib/packages.sh"
   OPENSIPS_RUNTIME_KIT_LOADED=1

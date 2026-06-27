@@ -1,6 +1,6 @@
-# MNSCloud OpenSIPS
+# MNSCloud OpenSIPS SBC
 
-Public standalone OpenSIPS edge connector for MNSCloud.
+Public standalone OpenSIPS SBC connector for MNSCloud.
 
 This repository installs and configures local OpenSIPS runtime assets that consume the MNSCloud API
 contract. It can run on MNSCloud, customer, or partner infrastructure.
@@ -16,9 +16,9 @@ contract. It can run on MNSCloud, customer, or partner infrastructure.
 
 ## Contract
 
-- Product/runtime: `mnscloud-opensips`
-- Project directory: `/opt/mnscloud/mnscloud-opensips`
-- Installer: `scripts/install-opensips.sh`
+- Product/runtime: `mnscloud-opensips-sbc`
+- Project directory: `/opt/mnscloud/mnscloud-opensips-sbc`
+- Installer: `scripts/install-opensips-sbc.sh`
 - Shared package installer: `mnscloud-runtime-kit`
 - Service: `opensips.service`
 - Local state prefix: `/etc/mnscloud/sbc`
@@ -44,9 +44,9 @@ Clone the private repository and install:
 ```bash
 sudo install -d -m 0755 /opt/mnscloud
 cd /opt/mnscloud
-gh repo clone manaoscloud/mnscloud-opensips
-cd /opt/mnscloud/mnscloud-opensips
-sudo bash scripts/install-opensips.sh
+gh repo clone manaoscloud/mnscloud-opensips-sbc
+cd /opt/mnscloud/mnscloud-opensips-sbc
+sudo bash scripts/install-opensips-sbc.sh
 ```
 
 See `opensips.md` and `SECURITY.md` for details.

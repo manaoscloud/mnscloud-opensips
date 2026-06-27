@@ -1,6 +1,6 @@
 # MNSCloud OpenSIPS Connector Skill
 
-Use this contract when changing the `opensips/` module or publishing `manaoscloud/mnscloud-opensips`.
+Use this contract when changing the `opensips/` module or publishing `manaoscloud/mnscloud-opensips-sbc`.
 
 ## Public Repository Boundary
 
@@ -23,14 +23,14 @@ monorepo at runtime.
 
 ## Contract
 
-- Product repository: `manaoscloud/mnscloud-opensips`
-- Local installer: `scripts/install-opensips.sh`
+- Product repository: `manaoscloud/mnscloud-opensips-sbc`
+- Local installer: `scripts/install-opensips-sbc.sh`
 - Runtime API consumer: MNSCloud SBC OpenSIPS endpoints under `/api/v1/sbc/opensips/*`
 - Local state prefix: `/etc/mnscloud/sbc`
 
 ## Checklist
 
-- Validate `scripts/install-opensips.sh` with `bash -n`.
+- Validate `scripts/install-opensips-sbc.sh` with `bash -n`.
 - Search the module for sensitive values before publishing.
 - Keep all required installer helpers inside this repository.
 - Keep the module consuming API contracts only.

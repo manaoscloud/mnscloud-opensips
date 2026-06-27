@@ -4,7 +4,7 @@ This repository is a standalone public MNSCloud client, installer, agent, or edg
 
 ## Repository
 
-- Name: mnscloud-opensips
+- Name: mnscloud-opensips-sbc
 - Public boundary: consumes the MNSCloud API/control plane and must not contain private platform authority.
 
 ## Contribution Workflow

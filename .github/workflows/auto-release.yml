@@ -21,7 +21,7 @@ jobs:
   release:
     uses: manaoscloud/mnscloud-runtime-kit/.github/workflows/auto-release.yml@main
     with:
-      release_script: scripts/release-opensips.sh
+      release_script: scripts/release-opensips-sbc.sh
       version: ${{ github.event.inputs.version || '' }}
       setup_deno: true
       checkout_runtime_kit: true

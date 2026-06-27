@@ -20,7 +20,7 @@ find_runtime_kit() {
 
 cd "$ROOT_DIR"
 RUNTIME_KIT_DIR="$(find_runtime_kit)" || {
-  printf '[mnscloud-opensips] ERROR: mnscloud-runtime-kit lib/release.sh not found\n' >&2
+  printf '[mnscloud-opensips-sbc] ERROR: mnscloud-runtime-kit lib/release.sh not found\n' >&2
   exit 1
 }
 
@@ -28,8 +28,8 @@ RUNTIME_KIT_DIR="$(find_runtime_kit)" || {
 source "${RUNTIME_KIT_DIR}/lib/release.sh"
 
 mrtk_release_prepare \
-  --product mnscloud-opensips \
-  --repository manaoscloud/mnscloud-opensips \
+  --product mnscloud-opensips-sbc \
+  --repository manaoscloud/mnscloud-opensips-sbc \
   --minimum-version 0.1.0 \
   --validate 'bash -n scripts/*.sh' \
   "$@"

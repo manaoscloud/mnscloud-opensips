@@ -35,7 +35,7 @@ consultas runtime, e somente o hash fica salvo no banco.
 ## Instalação
 
 ```bash
-bash scripts/install-opensips.sh
+bash scripts/install-opensips-sbc.sh
 ```
 
 O instalador:
