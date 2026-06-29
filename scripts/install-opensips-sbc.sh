@@ -358,7 +358,11 @@ ${rtpengine_reply}
   run "opensips -C -f '${cfg}'"
 }
 
-enable_service() { run "systemctl enable opensips"; run "systemctl restart opensips"; }
+enable_service() {
+  run "systemctl enable opensips"
+  run "systemctl restart opensips"
+  run "systemctl is-active opensips"
+}
 
 main() {
   require_root
