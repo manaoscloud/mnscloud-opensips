@@ -15,6 +15,7 @@ Este diretório documenta o uso do OpenSIPS como SBC do mnscloud.
 ## Cadastros
 
 - `VoipSbcServer`: servidores OpenSIPS/Kamailio/SBC autorizados no master.
+- `VoipSbcServer.RealtimeMediaServerRmsUUID`: servidor `mnscloud-media` usado para ancorar RTP/SRTP quando necessário.
 - `VoipSbcAccount`: conta SBC do tenant associada a um servidor SBC master.
 - `VoipSbcTrunk`: trunks vinculados à conta SBC.
 - `VoipSbcRoute`: rotas por prefixo/trunk/prioridade.
@@ -55,9 +56,22 @@ O instalador:
 - faz backup de `/etc/opensips/opensips.cfg` como `.bkp`;
 - gera uma configuração limpa mínima para consulta HTTP ao mnscloud;
 - grava o Bearer token local no `opensips.cfg` para autenticar as chamadas runtime contra a API;
+- grava `/etc/mnscloud/sbc/media.socket` quando a API retorna `rtpengineSocket`;
+- habilita `rtpengine.so` e `rtpengine_offer/answer/delete` apenas quando existe media relay associado;
 - define `mpath` no `opensips.cfg` conforme a distro/arquitetura para carregar os módulos oficiais instalados em `/usr/lib/<multiarch>/opensips/modules/` ou `/usr/lib64/opensips/modules/`.
 - carrega explicitamente `proto_udp.so` e `proto_tcp.so`, exigidos pelo OpenSIPS 3.6 para escutar nos sockets SIP UDP/TCP.
 - usa `sl_send_reply()` do módulo `sl.so` e `rest_post()` no formato OpenSIPS 3.6 para consultar a API de roteamento.
+
+## Audio, media e codecs
+
+- OpenSIPS não processa áudio diretamente; ele controla sinalização SIP.
+- O áudio RTP/SRTP é ancorado no `mnscloud-media` via `rtpengine` quando o servidor SBC tem um
+  `RealtimeMediaServer` associado.
+- Sem `RealtimeMediaServer`, o SBC sinaliza chamadas sem media relay e o RTP depende do caminho
+  direto entre as pontas.
+- Políticas de codec ficam no control plane (`VoipSbcPolicy` tipo `codec`) e devem ser aplicadas
+  conforme instruções retornadas pela API. O padrão operacional é codec pass-through; transcoding
+  deve ser tratado como exceção explícita por política/capacidade.
 
 ## Validação, atualização e rollback
 

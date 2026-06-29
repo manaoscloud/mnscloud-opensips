@@ -33,6 +33,8 @@ contract. It can run on MNSCloud, customer, or partner infrastructure.
 - Config validation: `opensips -C -f /etc/opensips/opensips.cfg`
 - Runtime API: `/api/v1/sbc/opensips/*`
 - Runtime engine: `opensips`
+- Optional media relay: API-selected `RealtimeMediaServer` exposed to OpenSIPS as an
+  `rtpengineSocket`.
 
 The API/control plane must be deployed with the canonical SBC runtime contract before this connector
 is installed or updated.
@@ -44,6 +46,8 @@ is installed or updated.
 - Network reachability from the OpenSIPS host to the MNSCloud API base URL.
 - A master `VoipSbcServer` record for this runtime, with engine `opensips` and a matching
   `VbsNodeUUID`, or an operational bootstrap flow that can bind the local node UUID.
+- Optional: an active `RealtimeMediaServer` selected on the `VoipSbcServer` record when this SBC
+  must anchor RTP/SRTP through `mnscloud-media`/`rtpengine`.
 - Tenant-facing SBC access is configured through `VoipSbcAccount` records associated to an active
   master SBC server. This connector does not own provider registration.
 - SIP firewall rules opened according to the deployment model, typically `5060/udp` and `5060/tcp`.
@@ -82,6 +86,9 @@ when possible, and keeps the original `/etc/opensips/opensips.cfg` as
 
 API-generated commands may pass `MNSCLOUD_API_BASE`, `MNSCLOUD_SBC_NODE_UUID`, and
 `MNSCLOUD_SBC_API_TOKEN`; when present, the installer persists those values before bootstrapping.
+When the API returns `rtpengineSocket`, the installer stores it in
+`/etc/mnscloud/sbc/media.socket` and enables OpenSIPS `rtpengine` handling in the generated
+configuration. Without an assigned media relay, OpenSIPS runs as SIP signaling/SBC only.
 
 ## Validate
 
@@ -122,3 +129,11 @@ Rollback restores `/etc/opensips/opensips.cfg.bkp`, validates the restored confi
 repository refs are not changed.
 
 See `opensips.md` and `SECURITY.md` for details.
+
+## Runtime Behavior
+
+- OpenSIPS owns SIP signaling, route lookup, policy entry points, and topology control.
+- RTP/SRTP media anchoring is delegated to the reusable `mnscloud-media` runtime through
+  `rtpengine` when the API assigns a media relay to this SBC server.
+- Codec policy is represented in SBC policies and must remain API/control-plane driven; the
+  connector applies only the runtime instructions returned by the API contract.

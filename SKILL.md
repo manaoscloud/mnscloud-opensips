@@ -29,6 +29,9 @@ monorepo at runtime.
 - Local state prefix: `/etc/mnscloud/sbc`
 - Runtime command environment: `MNSCLOUD_API_BASE`, `MNSCLOUD_SBC_NODE_UUID`, and
   `MNSCLOUD_SBC_API_TOKEN`
+- Media relay contract: OpenSIPS must use API-selected `RealtimeMediaServer` data only. When the
+  API returns `rtpengineSocket`, persist it in `/etc/mnscloud/sbc/media.socket` and enable
+  OpenSIPS `rtpengine`; do not hardcode media relay addresses in this public connector.
 - Lifecycle scripts: install, validate, update by explicit `--ref`, update by release channel, and
   rollback of the local OpenSIPS configuration.
 

@@ -9,10 +9,12 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 NODE_UUID_FILE="/etc/mnscloud/sbc/node.uuid"
 API_TOKEN_FILE="/etc/mnscloud/sbc/api.token"
 API_BASE_FILE="/etc/mnscloud/sbc/api.base"
+MEDIA_SOCKET_FILE="/etc/mnscloud/sbc/media.socket"
 DEFAULT_API_BASE="${MNSCLOUD_API_BASE:-https://api.example.com}"
 NODE_UUID="${MNSCLOUD_SBC_NODE_UUID:-}"
 API_BASE=""
 API_TOKEN="${MNSCLOUD_SBC_API_TOKEN:-}"
+MEDIA_SOCKET=""
 OPENSIPS_RUNTIME_KIT_DIR="${OPENSIPS_RUNTIME_KIT_DIR:-/opt/mnscloud/runtime-kit}"
 OPENSIPS_RUNTIME_KIT_REPO_URL="${OPENSIPS_RUNTIME_KIT_REPO_URL:-https://github.com/manaoscloud/mnscloud-runtime-kit.git}"
 OPENSIPS_RUNTIME_KIT_CHANNEL="${OPENSIPS_RUNTIME_KIT_CHANNEL:-stable}"
@@ -171,6 +173,13 @@ ensure_node_uuid_file() {
   run "chmod 0640 '${NODE_UUID_FILE}'"
 }
 
+load_media_socket_file() {
+  if [[ -f "${MEDIA_SOCKET_FILE}" ]]; then
+    MEDIA_SOCKET="$(tr -d '[:space:]' < "${MEDIA_SOCKET_FILE}")"
+    [[ -n "${MEDIA_SOCKET}" ]] && ok "SBC media socket loaded from ${MEDIA_SOCKET_FILE}: ${MEDIA_SOCKET}"
+  fi
+}
+
 json_escape() {
   local value="$1"
   value="${value//\\/\\\\}"
@@ -196,7 +205,7 @@ public_ipv4() {
 }
 
 bootstrap_node_via_api() {
-  local hostname_value private_ip public_ip payload response_file http_code server_uuid
+  local hostname_value private_ip public_ip payload response_file http_code server_uuid media_socket
   hostname_value="$(hostname -f 2>/dev/null || hostname 2>/dev/null || true)"
   private_ip="$(private_ipv4)"
   public_ip="$(public_ipv4)"
@@ -211,11 +220,24 @@ bootstrap_node_via_api() {
   response_file="$(mktemp)"
   http_code="$(curl -sS -o "${response_file}" -w "%{http_code}" -X POST "${API_BASE}/api/v1/sbc/opensips/bootstrap?node_uuid=${NODE_UUID}" -H "Content-Type: application/json" -H "Authorization: Bearer ${API_TOKEN}" --data "${payload}" 2>>"${LOG_FILE}")"
   server_uuid="$(json_field "serverUUID" "${response_file}")"
-  rm -f "${response_file}"
   if [[ "${http_code}" == "200" ]]; then
+    media_socket="$(json_field "rtpengineSocket" "${response_file}")"
+    [[ -z "${media_socket}" ]] && media_socket="$(json_field "mediaSocket" "${response_file}")"
+    if [[ -n "${media_socket}" ]]; then
+      MEDIA_SOCKET="${media_socket}"
+      write_file "${MEDIA_SOCKET_FILE}" "${MEDIA_SOCKET}"
+      run "chown root:root '${MEDIA_SOCKET_FILE}'"
+      run "chmod 0640 '${MEDIA_SOCKET_FILE}'"
+    else
+      MEDIA_SOCKET=""
+      rm -f "${MEDIA_SOCKET_FILE}"
+    fi
+    rm -f "${response_file}"
     ok "Node UUID vinculado via API bootstrap. serverUUID: ${server_uuid:-unknown}"
+    [[ -n "${MEDIA_SOCKET}" ]] && ok "SBC media relay enabled: ${MEDIA_SOCKET}"
     return 0
   fi
+  rm -f "${response_file}"
   warn "SBC API bootstrap returned HTTP ${http_code}. Register the Node UUID manually if necessary."
   return 1
 }
@@ -264,8 +286,28 @@ opensips_module_path() {
 }
 
 write_opensips_config() {
-  local cfg="/etc/opensips/opensips.cfg" module_path
+  local cfg="/etc/opensips/opensips.cfg" module_path rtpengine_modules="" rtpengine_params="" rtpengine_bye="" rtpengine_offer="" rtpengine_reply=""
   module_path="$(opensips_module_path)"
+  if [[ -n "${MEDIA_SOCKET}" ]]; then
+    rtpengine_modules='loadmodule "rtpengine.so"'
+    rtpengine_params="modparam(\"rtpengine\", \"rtpengine_sock\", \"${MEDIA_SOCKET}\")"
+    rtpengine_bye='  if (is_method("BYE|CANCEL")) {
+    rtpengine_delete();
+  }
+'
+    rtpengine_offer='    if (has_body("application/sdp")) {
+      rtpengine_offer("replace-origin replace-session-connection");
+    }
+    t_on_reply("MNSCLOUD_RTPENGINE_REPLY");
+'
+    rtpengine_reply='
+onreply_route[MNSCLOUD_RTPENGINE_REPLY] {
+  if (has_body("application/sdp")) {
+    rtpengine_answer("replace-origin replace-session-connection");
+  }
+}
+'
+  fi
   backup_once "$cfg"
   write_file "$cfg" "#### MNSCloud OpenSIPS SBC ####
 log_level=3
@@ -285,10 +327,14 @@ loadmodule \"textops.so\"
 loadmodule \"sipmsgops.so\"
 loadmodule \"rest_client.so\"
 loadmodule \"json.so\"
+${rtpengine_modules}
+
+${rtpengine_params}
 
 route {
   if (!mf_process_maxfwd_header(10)) { sl_send_reply(483, \"Too Many Hops\"); exit; }
   if (is_method(\"OPTIONS\")) { sl_send_reply(200, \"OK\"); exit; }
+${rtpengine_bye}
 
   if (is_method(\"INVITE\")) {
     xlog(\"L_INFO\", \"mnscloud SBC route lookup for \$rU from \$si\\n\");
@@ -297,11 +343,13 @@ route {
     \$var(rest_rc) = rest_post(\"${API_BASE}/api/v1/sbc/opensips/route?node_uuid=${NODE_UUID}\", \$var(route_payload), \"application/json\", \$var(body), \$var(ct), \$var(http_code));
     if (\$var(rest_rc) < 0) { sl_send_reply(503, \"Route lookup failed\"); exit; }
     if (\$var(http_code) != 200) { sl_send_reply(503, \"Route lookup failed\"); exit; }
+${rtpengine_offer}
   }
 
   if (!t_relay()) { sl_send_reply(500, \"Relay failed\"); }
   exit;
 }
+${rtpengine_reply}
 "
   run "opensips -C -f '${cfg}'"
 }
@@ -321,6 +369,7 @@ main() {
   ensure_node_uuid_file
   ensure_api_token_file
   case "$(detect_opensips_os)" in debian) install_packages_debian ;; rocky) install_packages_rocky ;; esac
+  load_media_socket_file
   bootstrap_node_via_api || true
   write_opensips_config
   enable_service
