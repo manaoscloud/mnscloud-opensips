@@ -3,9 +3,9 @@
   "repository": "manaoscloud/mnscloud-opensips-sbc",
   "channels": {
     "stable": {
-      "version": "0.1.5",
-      "ref": "v0.1.5",
-      "releasedAt": "2026-06-29T03:38:40Z",
+      "version": "0.1.6",
+      "ref": "v0.1.6",
+      "releasedAt": "2026-06-29T21:17:57Z",
       "minimumVersion": "0.1.0"
     }
   }
