@@ -290,6 +290,8 @@ write_opensips_config() {
   local cfg="/etc/opensips/opensips.cfg" module_path rtpengine_modules="" rtpengine_params="" rtpengine_bye="" rtpengine_offer="" rtpengine_reply=""
   module_path="$(opensips_module_path)"
   if [[ -n "${MEDIA_SOCKET}" ]]; then
+    [[ -r "${module_path%/}/rtpengine.so" ]] ||
+      { err "OpenSIPS rtpengine module not found at ${module_path%/}/rtpengine.so while media relay is assigned"; return 1; }
     rtpengine_modules='loadmodule "rtpengine.so"'
     rtpengine_params="modparam(\"rtpengine\", \"rtpengine_sock\", \"${MEDIA_SOCKET}\")"
     rtpengine_bye='  if (is_method("BYE|CANCEL")) {
