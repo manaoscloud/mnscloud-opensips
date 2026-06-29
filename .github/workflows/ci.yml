@@ -13,4 +13,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
       - name: Shell syntax check
-        run: bash -n scripts/*.sh
+        run: |
+          bash -n scripts/*.sh scripts/lib/*.sh
+          bash scripts/validate-opensips-sbc.sh

@@ -31,5 +31,5 @@ mrtk_release_prepare \
   --product mnscloud-opensips-sbc \
   --repository manaoscloud/mnscloud-opensips-sbc \
   --minimum-version 0.1.0 \
-  --validate 'bash -n scripts/*.sh' \
+  --validate 'bash -n scripts/*.sh scripts/lib/*.sh && bash scripts/validate-opensips-sbc.sh' \
   "$@"

@@ -27,10 +27,15 @@ monorepo at runtime.
 - Local installer: `scripts/install-opensips-sbc.sh`
 - Runtime API consumer: MNSCloud SBC OpenSIPS endpoints under `/api/v1/sbc/opensips/*`
 - Local state prefix: `/etc/mnscloud/sbc`
+- Runtime command environment: `MNSCLOUD_API_BASE`, `MNSCLOUD_SBC_NODE_UUID`, and
+  `MNSCLOUD_SBC_API_TOKEN`
+- Lifecycle scripts: install, validate, update by explicit `--ref`, update by release channel, and
+  rollback of the local OpenSIPS configuration.
 
 ## Checklist
 
-- Validate `scripts/install-opensips-sbc.sh` with `bash -n`.
+- Validate scripts with `bash scripts/validate-opensips-sbc.sh` or at least `bash -n scripts/*.sh scripts/lib/*.sh`.
+- Keep README and `opensips.md` aligned with the install/update/validate/rollback lifecycle.
 - Search the module for sensitive values before publishing.
 - Keep all required installer helpers inside this repository.
 - Keep the module consuming API contracts only.

@@ -14,9 +14,9 @@ Este diretório documenta o uso do OpenSIPS como SBC do mnscloud.
 
 ## Cadastros
 
-- `VoipSbcProvider`: plataformas/providers SBC.
-- `VoipSbcServer`: servidores OpenSIPS/Kamailio/SBC autorizados.
-- `VoipSbcTrunk`: trunks de operadoras.
+- `VoipSbcServer`: servidores OpenSIPS/Kamailio/SBC autorizados no master.
+- `VoipSbcAccount`: conta SBC do tenant associada a um servidor SBC master.
+- `VoipSbcTrunk`: trunks vinculados à conta SBC.
 - `VoipSbcRoute`: rotas por prefixo/trunk/prioridade.
 - `VoipSbcPolicy`: políticas ACL, rate, codec, NAT, header e routing.
 
@@ -40,7 +40,9 @@ bash scripts/install-opensips-sbc.sh
 
 O instalador:
 
-- solicita a URL base da API na primeira execução e salva em `/etc/mnscloud/sbc/api.base`;
+- aceita `MNSCLOUD_API_BASE`, `MNSCLOUD_SBC_NODE_UUID` e `MNSCLOUD_SBC_API_TOKEN` quando o comando
+  é gerado pela API, persistindo esses valores antes do bootstrap;
+- solicita a URL base da API na primeira execução manual e salva em `/etc/mnscloud/sbc/api.base`;
 - configura o repositório oficial OpenSIPS 3.6.x LTS antes da instalação;
   - Debian 12 Bookworm: `https://apt.opensips.org` com componente `3.6-releases` e keyring `/usr/share/keyrings/opensips.gpg`;
   - Rocky 8/9: `https://yum.opensips.org/3.6/releases/st/<major>/<arch>/`;
@@ -57,6 +59,22 @@ O instalador:
 - carrega explicitamente `proto_udp.so` e `proto_tcp.so`, exigidos pelo OpenSIPS 3.6 para escutar nos sockets SIP UDP/TCP.
 - usa `sl_send_reply()` do módulo `sl.so` e `rest_post()` no formato OpenSIPS 3.6 para consultar a API de roteamento.
 
+## Validação, atualização e rollback
+
+```bash
+bash scripts/validate-opensips-sbc.sh
+bash scripts/update-opensips-sbc.sh --ref v0.1.2
+bash scripts/update-latest-opensips-sbc.sh stable
+bash scripts/rollback-opensips-sbc.sh
+```
+
+- `validate` confere a sintaxe dos scripts e, quando o OpenSIPS está instalado, valida
+  `/etc/opensips/opensips.cfg`.
+- `update --ref` busca o repositório, faz checkout do ref explícito, executa o instalador e valida.
+- `update-latest` resolve o canal em `releases/manifest.json` e chama `update --ref`.
+- `rollback` restaura `/etc/opensips/opensips.cfg.bkp`, valida o arquivo restaurado e reinicia
+  `opensips.service`.
+
 ## Troubleshooting
 
 ```bash
@@ -72,7 +90,8 @@ Para validar heartbeat:
 ```bash
 NODE_UUID="$(tr -d '[:space:]' < /etc/mnscloud/sbc/node.uuid)"
 API_TOKEN="$(tr -d '[:space:]' < /etc/mnscloud/sbc/api.token)"
-curl -sS -X POST "https://dev1.publichost.cloud/api/v1/sbc/opensips/heartbeat?node_uuid=${NODE_UUID}" \
+API_BASE="$(tr -d '[:space:]' < /etc/mnscloud/sbc/api.base)"
+curl -sS -X POST "${API_BASE}/api/v1/sbc/opensips/heartbeat?node_uuid=${NODE_UUID}" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${API_TOKEN}" \
   --data '{"hostname":"sbc-dev1"}'
