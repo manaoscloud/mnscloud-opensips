@@ -210,6 +210,7 @@ bootstrap_node_via_api() {
   hostname_value="$(hostname -f 2>/dev/null || hostname 2>/dev/null || true)"
   private_ip="$(private_ipv4)"
   public_ip="$(public_ipv4)"
+  info "Bootstrap metadata: hostname=${hostname_value:-unknown}, privateIP=${private_ip:-unknown}, publicIP=${public_ip:-unknown}"
   payload="{\"engine\":\"$(json_escape "${SBC_ENGINE}")\",\"hostname\":\"$(json_escape "${hostname_value}")\""
   [[ -n "${private_ip}" ]] && payload+=",\"privateIP\":\"$(json_escape "${private_ip}")\""
   [[ -n "${public_ip}" ]] && payload+=",\"publicIP\":\"$(json_escape "${public_ip}")\""
