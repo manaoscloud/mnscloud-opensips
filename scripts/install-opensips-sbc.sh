@@ -288,8 +288,13 @@ opensips_module_path() {
 }
 
 write_opensips_config() {
-  local cfg="/etc/opensips/opensips.cfg" module_path rtpengine_modules="" rtpengine_params="" rtpengine_bye="" rtpengine_offer="" rtpengine_reply=""
+  local cfg="/etc/opensips/opensips.cfg" module_path sip_i_modules="" rtpengine_modules="" rtpengine_params="" rtpengine_bye="" rtpengine_offer="" rtpengine_reply=""
   module_path="$(opensips_module_path)"
+  if [[ -r "${module_path%/}/sip_i.so" ]]; then
+    sip_i_modules='loadmodule "sip_i.so"'
+  else
+    warn "OpenSIPS sip_i module not found at ${module_path%/}/sip_i.so; SIP-I payload interworking will stay disabled until the package provides it"
+  fi
   if [[ -n "${MEDIA_SOCKET}" ]]; then
     [[ -r "${module_path%/}/rtpengine.so" ]] ||
       { err "OpenSIPS rtpengine module not found at ${module_path%/}/rtpengine.so while media relay is assigned"; return 1; }
@@ -331,6 +336,7 @@ loadmodule \"textops.so\"
 loadmodule \"sipmsgops.so\"
 loadmodule \"rest_client.so\"
 loadmodule \"json.so\"
+${sip_i_modules}
 ${rtpengine_modules}
 
 ${rtpengine_params}

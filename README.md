@@ -49,7 +49,9 @@ is installed or updated.
 - Optional: an active `RealtimeMediaServer` selected on the `VoipSbcServer` record when this SBC
   must anchor RTP/SRTP through `mnscloud-media`/`rtpengine`.
 - Tenant-facing SBC access is configured through `VoipSbcAccount` records associated to an active
-  master SBC server. This connector does not own provider registration.
+  master SBC server. Peer authentication, registration, IP allowlists, SIP-I/SIP-T interworking,
+  media policy, and codec policy are API/control-plane records consumed by this connector at
+  runtime.
 - SIP firewall rules opened according to the deployment model, typically `5060/udp` and `5060/tcp`.
 
 ## Install
@@ -140,6 +142,14 @@ See `opensips.md` and `SECURITY.md` for details.
   `rtpengine` when the API assigns a media relay to this SBC server.
 - Codec policy is represented in SBC pipes and must remain API/control-plane driven; the
   connector applies only the runtime instructions returned by the API contract.
+- Peer authentication supports the control-plane modes `ip`, `register`, `ip_digest`, and `none`.
+  IP authentication must be backed by explicit allowed source addresses. REGISTER and OPTIONS
+  status must be reported back to `/api/v1/sbc/runtime/peer-status`; tenant users should not edit
+  runtime health fields directly.
+- SIP-I/SIP-T is represented by peer/pipe signaling profiles. OpenSIPS 3.6 uses the official
+  `sip_i.so` module when available from the installed package. If the module is absent, the
+  installer warns and keeps SIP-I payload interworking disabled instead of generating a broken
+  configuration.
 - Pipe lookup is multi-criteria and API-controlled. The connector sends source/local/RURI/From/To
   context; the API must return exactly one authorized pipe or fail closed on ambiguity.
 - The generated OpenSIPS 3.6 config uses `$si`/`$sp` for the remote source and
