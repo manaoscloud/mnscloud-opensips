@@ -108,7 +108,7 @@ EOF
       | if $h == "" then "" else "sip:" + $h + ":" + ($p|tostring) + ";transport=" + $t end;
     def aor($peer):
       if (($peer.aor // "") | clean) != "" then ($peer.aor | sipuri)
-      elif (($peer.authUsername // "") | clean) != "" and (($peer.fromDomain // $peer.host // "") | clean) != "" then "sip:" + ($peer.authUsername | clean) + "@" + (($peer.fromDomain // $peer.host) | clean)
+      elif (($peer.authUsername // "") | clean) != "" and (($peer.fromDomain // $peer.registrarHost // "") | clean) != "" then "sip:" + ($peer.authUsername | clean) + "@" + (($peer.fromDomain // $peer.registrarHost) | clean)
       else ""
       end;
     def binding($peer):
@@ -120,8 +120,8 @@ EOF
       | select((.authMode == "register" or .registerEnabled == 1) and .authUsername and .authPassword)
       | . as $peer
       | {
-          registrar: siphost(($peer.registrarHost // $peer.host); ($peer.registrarPort // $peer.port); ($peer.registrarTransport // $peer.transport)),
-          proxy: (($peer.outboundProxy // "") | sipuri),
+          registrar: siphost($peer.registrarHost; ($peer.registrarPort // 5060); ($peer.registrarTransport // "udp")),
+          proxy: "",
           aor: aor($peer),
           thirdParty: (($peer.fromDomain // "") | if clean == "" then "" else "sip:" + clean end),
           username: ($peer.authUsername // ""),

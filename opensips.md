@@ -18,10 +18,11 @@ Este diretório documenta o uso do OpenSIPS como SBC do mnscloud.
 - `VoipSbcServer.RealtimeMediaServerRmsUUID`: servidor `mnscloud-media` usado para ancorar RTP/SRTP quando necessário.
 - `VoipSbcAccount`: conta SBC do tenant associada a um servidor SBC master.
 - `VoipSbcInterface`: listeners/sockets SIP locais do servidor SBC, controlados pelo master.
-- `VoipSbcPeer`: interconexões SIP reutilizáveis como entrada ou saída, com conexão, autenticação,
-  registro, origem autorizada, SIP-I/SIP-T, limites e monitoramento.
-- `VoipSbcPipe`: fluxo tenant-aware que liga um peer de entrada a um peer de saída, mantendo
-  interface, critérios opcionais, mídia, codecs e comportamento operacional.
+- `VoipSbcPeer`: identidade de interconexão SIP de entrada, com autenticação, registro, origem
+  autorizada, SIP-I/SIP-T, limites e monitoramento.
+- `VoipSbcPipe`: fluxo tenant-aware que liga um peer de entrada a uma rota SIP de saída direta,
+  mantendo host, porta, transporte, failover, interface, critérios opcionais, mídia, codecs e
+  comportamento operacional.
 - `VoipSbcManipulation`: manipulações SIP vinculadas ao pipe.
 
 ## Endpoints Runtime
@@ -42,7 +43,7 @@ O lookup de `pipe` envia contexto SIP suficiente para identificar o peer de entr
 fluxo multi-tenant correto: direção, destino/RURI, IP/porta/transporte de origem, IP/porta local,
 From, To, R-URI domain e usuário de autenticação quando disponível. A API/control plane primeiro
 resolve a interconexão de entrada (`inputPeerUUID`) e depois escolhe um único `VoipSbcPipe`
-ativo para o par `peer de entrada -> peer de saída`. Critérios como IP, porta, domínio, From/To e
+ativo para o par `peer de entrada -> rota de saída`. Critérios como IP, porta, domínio, From/To e
 destino são refinadores de match, não a identidade principal do fluxo. Empates são tratados como
 ambiguidade e a chamada não deve ser encaminhada automaticamente.
 
